@@ -1,0 +1,4 @@
+This folder contains publically available data used by the project:
+1. 'covid-19-data' is a submodule pointing to the NYT GitHub Repository: https://github.com/nytimes/covid-19-data
+2. 'COVID-19' is a submodule pointing to the Johns Hopkins University GitHub repository: https://github.com/CSSEGISandData/COVID-19
+3. nst-est2019-01.xlsx is a population estimate file from the US Census Bureau
