@@ -9,7 +9,7 @@ option_list <- list(
 make_option(c("-s", "--state"), type = "character", 
             default = "16", help = "State to Analyze - index",
             metavar="character"),
-make_option(c("-t", "--template"), type = "character", 
+make_option(c("-m", "--template"), type = "character", 
             default = "default.template.mortality.R", help = "Analysis Template File",
             metavar="character"),
 make_option(c("-d", "--date"), type = "character", 
