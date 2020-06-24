@@ -3,7 +3,7 @@ library(dplyr)
 library(optparse)
 library(splines)
 library(openxlsx)
-
+library(digest)
 
 option_list <- list(
 make_option(c("-s", "--state"), type = "character", 
@@ -35,9 +35,10 @@ make_option(c("-z", "--cores"), type = "character",
 opt_parser <- OptionParser(option_list = option_list)
 opt = parse_args(opt_parser)
 
+#save("opt", file = paste0(substr(digest(opt, algo = "md5"),1,5), ".rda"))
 state <- opt$state
-interventionDate <- as.Date(opt$date)
-reopenDate <- as.Date(opt$reopen)
+interventionDate <- as.Date(opt$date, format="%m/%d/%Y")
+reopenDate <- as.Date(opt$reopen, format="%m/%d/%Y")
 resultsFileName <- opt$outfile
 isdebug <- as.numeric(opt$isdebug) > 0
 cores <- as.integer(opt$cores)
