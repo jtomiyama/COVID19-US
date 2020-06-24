@@ -3,6 +3,7 @@
 #####################################
 library(digest)
 library(dplyr)
+library(openxlsx)
 
 ## Declare simulation type and scope ##
 # Declare argon opts
@@ -45,7 +46,7 @@ cleanDt <- function(x){
   gsub("/", ".", x, fixed = TRUE)
 }
 grid$outputfile <- apply(grid, 1, function(x){
-  paste0(paste0("../Results/", analysis_date), 
+  paste0(paste0("../Results/", analysis_date, "/"), 
          paste0(paste0(c(x[["state_idx"]], 
                   x[["intervention"]], 
                   cleanDt(x[["intervDate"]]), 
