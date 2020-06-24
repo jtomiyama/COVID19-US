@@ -20,7 +20,7 @@ required_globals <- c("state",
                       "cores",
                       "isdebug",
                       "interventionDate", 
-                      "reopenDate",ff
+                      "reopenDate",
                       "intervType",
                       "stateDataFiltered",
                       "instate")

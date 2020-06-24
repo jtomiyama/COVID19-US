@@ -15,7 +15,10 @@ isDebug <- FALSE
 states_to_run <- c(16)
 intervention_types_to_run <- c(1,2,3,4,5)
 templates_to_use <- c("default.template.mortality.R")
-
+analysis_date <- Sys.Date()
+if (!dir.exists(paste0("../Results/", analysis_date))){
+  dir.create(paste0("../Results/", analysis_date))
+}
 
 ## Update the datasets ##
 system("Rscript UpdateData.R")
@@ -28,17 +31,6 @@ states_to_run <- data.frame(state_idx=states_to_run,state=uqStates[states_to_run
 
 interv <- read.csv("../Data/intervention_info.csv") %>%
   inner_join(states_to_run, by="state")
-
-# Arguments for AnalyzeNYT.R:
-# state,
-# template
-# date
-# reopen
-# type
-# debug
-# outfile
-# cores (keep automatic)
-
 
 grid <- expand.grid(template=templates_to_use,
             intervention=intervention_types_to_run, 
@@ -53,12 +45,13 @@ cleanDt <- function(x){
   gsub("/", ".", x, fixed = TRUE)
 }
 grid$outputfile <- apply(grid, 1, function(x){
-  paste0(paste0(c(x[["state_idx"]], 
+  paste0(paste0("../Results/", analysis_date), 
+         paste0(paste0(c(x[["state_idx"]], 
                   x[["intervention"]], 
                   cleanDt(x[["intervDate"]]), 
                   cleanDt(x[["reopenDate"]]), 
                   x[["template_short"]]), 
-                collapse = "_"), ".rda")
+                collapse = "_"), ".rda"))
 })
 
 submission_strings <- vapply(1:nrow(grid), FUN.VALUE = "string", FUN = function(i){
