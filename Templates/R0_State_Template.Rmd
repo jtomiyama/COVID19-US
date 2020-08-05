@@ -58,26 +58,7 @@ set.seed(as.numeric(rprtDate))
 
 ## Introduction
 
-*This Section needs to be edited*
-
-
-This automatically generated report captures the changes in one of our approaches to COVID modelling in Iowa. The team at the University of Iowa has provided a number of white-papers to the Iowa Department of Public Health, including:
-
-1. An assessment of the IHME model for IDPH: [(link)](https://governor.iowa.gov/documents/idph-white-paper-1)
-2. Initia, Iowa-specific models, submitted April 20, 2020: [(link)](https://governor.iowa.gov/documents/idph-white-paper-2)
-3. Clarifications of appropriate use of symptom onset data, submitted April 27, 2020 [(link)](https://www.bleedingheartland.com/static/media/2020/05/Understanding-the-Current-Epidemic-from-Dates-of-Symptom-Onset.pdf)
-4. Update on Iowa-specific model M2, submitted May 04, 2020: [(link)](http://media.graytvinc.com/documents/IDPH+Whitepaper++-+Update+on+the+Current+COVID-19+Situation+in+the+State+of+Iowa.pdf)
-
-This specific report concerns model M2 from the April 20 and May 04 whitepapers, and is constructed using entirely public information. Given the sensitivity of these models to prior assumptions, and the data used, results may not preciesly concord with models used for other purposes or constructed under different conditions. The information presented here is intended to supplement, not replace, official guidance on COVID-19 from reputable public health organizations:
-
-1. [IDPH](https://coronavirus.iowa.gov/)
-2. [CDC](https://www.cdc.gov/coronavirus/2019-ncov/index.html)
-3. [WHO](https://www.who.int/emergencies/diseases/novel-coronavirus-2019)
-
-We're also not the only group producing Iowa-specific forecasts. You may also be interested in the following projects:
-
-1. [IHME](https://covid19.healthdata.org/united-states-of-america/iowa)
-2. [Reich Lab](https://reichlab.io/covid19-forecast-hub/)
+*Some Text on the Models used goes here*
 
 
 ### Reproductive Numbers
