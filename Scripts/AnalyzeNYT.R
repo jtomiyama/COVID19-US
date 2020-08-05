@@ -101,7 +101,18 @@ if (file.exists(resultsFileName)){
                             sampling_control,
                             samples = nSamples,
                             verbose = 2)
-  save("result", "stateDataFiltered", "opt", file = resultsFileName, compress = "bzip2")
+  
+  simulated = epidemic.simulations(result, replicates = 2)
+  tmp <- structure(list(modelObject = result, simulationResults = result$simulationResults, 
+                        params = result$param.samples), class = "PosteriorSimulation")
+  R0 <- ComputeR0(SimObject = simulated, cores = 1)
+  R0post <- ComputeR0(SimObject = tmp, cores = 1)
+  
+  single_state_results <- list(data = stateDataFiltered, 
+                               result = R0post, 
+                               sims = R0,
+                               location = state)
+  save("single_state_results", "stateDataFiltered", "opt", file = resultsFileName, compress = "bzip2")
 } 
 
 

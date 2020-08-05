@@ -8,12 +8,14 @@ library(openxlsx)
 ## Declare simulation type and scope ##
 # Declare argon opts
 argon_opts <- "-q UI,all.q"
-# Running gon HPC?
+# Running on HPC?
 is.argon <- TRUE
 # Is this a debug run?
 isDebug <- FALSE
 # Determine the simulation grid
-states_to_run <- c(16)
+# refer to Data/state_key.xlsx
+states_to_run <- c(14, 15, 16, 17, 23, 24, 
+                   26, 28, 35, 36, 42, 50)
 intervention_types_to_run <- c(1,2,3,4,5)
 templates_to_use <- c("default.template.mortality.R")
 analysis_date <- Sys.Date()
@@ -45,14 +47,23 @@ grid$template_short <- vapply(as.character(grid$template), function(x){
 cleanDt <- function(x){
   gsub("/", ".", x, fixed = TRUE)
 }
+
 grid$outputfile <- apply(grid, 1, function(x){
-  paste0(paste0("../Results/", analysis_date, "/"), 
-         paste0(paste0(c(x[["state_idx"]], 
+  dir_header <- paste0("../Results/",analysis_date, "/")
+  
+  clean_idx <- ifelse(x[["state_idx"]] < 10, 
+                      paste0("0", trimws(x[["state_idx"]])), 
+                      x[["state_idx"]])
+  
+  paste0(dir_header, 
+         paste0(
+           paste0(c(clean_idx, 
                   x[["intervention"]], 
                   cleanDt(x[["intervDate"]]), 
                   cleanDt(x[["reopenDate"]]), 
                   x[["template_short"]]), 
                 collapse = "_"), ".rda"))
+  
 })
 
 submission_strings <- vapply(1:nrow(grid), FUN.VALUE = "string", FUN = function(i){
