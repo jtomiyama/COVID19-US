@@ -16,7 +16,6 @@ isDebug <- TRUE
 # refer to Data/state_key.xlsx
 states_to_run <- c(14, 15, 16, 17, 23, 24, 
                    26, 28, 35, 36, 42, 50)
-states_to_run <- c(16)
 intervention_types_to_run <- c(1,2,3,4,5)
 mandate_type <- "SAHO"
 templates_to_use <- c("default.template.mortality.R")
