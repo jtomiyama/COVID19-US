@@ -35,7 +35,9 @@ maxPredDate <- max( rprtDate + 30, as.Date("2020-06-01"))
 clean_idx <- ifelse(TEMPLATE_STATE_IDX < 10, 
                     paste0("0", trimws(TEMPLATE_STATE_IDX)), 
                     TEMPLATE_STATE_IDX)
-rsltFileIndicator <- grepl(clean_idx, substr(dir(resultsDirectoryName), 1, 2))
+rsltFileIndicator <- grepl(clean_idx, substr(dir(resultsDirectoryName), 1, 2)) &
+                     grepl(paste0("[",TEMPLATE_INTERVENTION_TYPES,"]"),
+                           substr(dir(resultsDirectoryName), 4, 4))
 
 if(sum(rsltFileIndicator) > 0){
   resultFiles <- paste0(resultsDirectoryName,"/", 
@@ -58,8 +60,9 @@ set.seed(as.numeric(rprtDate))
 
 ## Introduction
 
-*Some Text on the Models used goes here*
+Scientific questions of interest:
 
+* Do stay at home orders affect the number of cases of COVID-19?
 
 ### Reproductive Numbers
 
@@ -73,11 +76,20 @@ The plot below provides the latest plot estimating our relationship to this thre
 
 The models used here are trained on publicly available mortality data - as such, predicting mortality is one of their principal uses. In this document, we present the latest statewide projections, as well as a comparison to the official May-02 report to see how the predictions have evolved over time (where appropriate).
 
+
+## Methods
+
+Typically, we do not know the functional form of how a public policy will affect the probability of being exposed to an infectious disease. Meaning, we do not know whether the effect is linear, quadratic, or exponential with time. To account for this functional uncertainty, we consider a set of 3 models and take a weighted average over them to conduct statistical inference. Assuming that the estimates from these models are not overtly bias, this model averaging strategy should help reduce the immense variability inherent in acute infectious disease outbreak models.
+
+Model 1 assumes an instantaneous shift in (a function of) the probability of exposure once the public policy order starts and again when it stops. Model 2 assumes a piecewise linear effect with time. Model 3 specifies a basis spline expansion over the mandate time. For states without a stay at home order, a basis spline expansion on the observed epidemic time are used. See the results section for visualizations of these effects.
+
 # {.tabset}
 
 ## Latest Results {.tabset}
 
 These results are based on the most recently available models (generally 1-2 days out of date)
+
+### Parameter Results
 
 ### Latest EA-RN information for Iowa 
 
