@@ -40,11 +40,14 @@ data_model_1 = DataModel(stateDataFiltered$deathsNonCum,
 # Exposure model: spline basis beginning on epidemic response date 
 
 # Check for valid intervention type
-if (!intervType %in% 1:5){
-  stop("Expecting Intervention of type 1 to 5")
+if (!intervType %in% 0:5){
+  stop("Expecting Intervention of type 0 to 5")
 }
 
-if (intervType == 1){
+if(intervType == 0){
+  # 6 df spline basis
+  X <- as.matrix(cbind(1, bs(1:length(stateDataFiltered$date))))
+} else if (intervType == 1){
   # Shift @ start and stop
   X <- cbind(1, 
              1*(stateDataFiltered$date >= interventionDate), 
@@ -55,6 +58,7 @@ if (intervType == 1){
              cumsum((stateDataFiltered$date >= reopenDate))/7) # Weekly scale
 } else if (intervType == 3){
   # Spline basis after intervention
+  # Spline should pick up any effects after reopen date
   c1 <- cumsum(1*((stateDataFiltered$date >= interventionDate)))
   sharedBasis <- bs(0:200, degree = 4) 
   X <- as.matrix(cbind(1,predict(sharedBasis,c1)))
@@ -82,7 +86,7 @@ if (intervType == 1){
   # Throw away last few days of mobility
   mobility <- filter(mobility, as.Date(date) <= as.Date(max(date))-3)
   
-  # Naiive assumption - assume that, moving forward, mobility stays at the previous week average. 
+  # Naive assumption - assume that, moving forward, mobility stays at the previous week average. 
   X <- cbind(1, rep(NA, nrow(stateDataFiltered)))
   lastWkAvg <- mean(mobility$workplace_mean[order(mobility$date,decreasing = TRUE)][1:7])
   for (i in 1:nrow(X)){
@@ -96,7 +100,7 @@ if (intervType == 1){
   # Normalize
   X[,2] <- X[,2]/max(abs(X[,2]))
 } else if (intervType == 5){
-  # Rec mobility
+  # Retail and Recreation mobility
   
   mobility <- read.csv("../Data/mobility.csv", stringsAsFactors = FALSE)
   # Figure out sub-region
@@ -117,7 +121,7 @@ if (intervType == 1){
   mobility <- filter(mobility, as.Date(date) <= as.Date(max(date))-3)
   
   
-  # Naiive assumption - assume that, moving forward, mobility stays at the previous week average. 
+  # Naive assumption - assume that, moving forward, mobility stays at the previous week average. 
   X <- cbind(1, rep(NA, nrow(stateDataFiltered)))
   lastWkAvg <- mean(mobility$retail_mean[order(mobility$date,decreasing = TRUE)][1:7])
   for (i in 1:nrow(X)){
