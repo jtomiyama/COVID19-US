@@ -11,10 +11,10 @@ argon_opts <- "-q UI,all.q"
 # Running on HPC?
 is.argon <- TRUE
 # Is this a debug run?
-isDebug <- TRUE
+isDebug <- FALSE
 # Determine the simulation grid
 # refer to Data/state_key.xlsx
-states_to_run <- c(14, 15, 16, 17, 23, 24, 
+ states_to_run <- c(14, 15, 16, 17, 23, 24, 
                    26, 28, 35, 36, 42, 50)
 intervention_types_to_run <- c(1,2,3,4,5)
 mandate_type <- "SAHO"
@@ -107,7 +107,7 @@ if(nrow(no_interv) > 0){
   no_interv$intervention <- 0
   no_interv$template_short <- vapply(as.character(no_interv$template), function(x){
     substr(digest::digest(x, algo = "md5"),1,6)},"STRING")
-  no_interv$outfile <- apply(no_interv, 1, function(x){
+  no_interv$outputfile <- apply(no_interv, 1, function(x){
     dir_header <- paste0("../Results/",analysis_date, "/")
     
     clean_idx <- ifelse(x[["state_idx"]] < 10, 
@@ -127,13 +127,13 @@ if(nrow(no_interv) > 0){
   ### Argon script
   
   submission_strings2 <- vapply(1:nrow(no_interv), FUN.VALUE = "string", FUN = function(i){
-    args <- list(s = as.character(grid$state_idx[i]),
-                 m = as.character(grid$template[i]),
+    args <- list(s = as.character(no_interv$state_idx[i]),
+                 m = as.character(no_interv$template[i]),
                  d = "2020-03-01",
                  r = "2020-05-01",
-                 t = as.character(grid$intervention[i]),
+                 t = as.character(no_interv$intervention[i]),
                  b = 1*isDebug,
-                 o = as.character(grid$outputfile[i]))
+                 o = as.character(no_interv$outputfile[i]))
     
     if (is.argon){
       return(paste0("qsub -pe smp 16 -cwd ", argon_opts, " submitJob.sh ", paste0(args, collapse = " ")))
