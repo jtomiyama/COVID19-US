@@ -45,8 +45,8 @@ if (!intervType %in% 0:5){
 }
 
 if(intervType == 0){
-  # 6 df spline basis
-  X <- as.matrix(cbind(1, bs(1:length(stateDataFiltered$date))))
+  # 6 deg spline basis
+  X <- as.matrix(cbind(1, bs(1:length(stateDataFiltered$date) - 1, df = 6)))
 } else if (intervType == 1){
   # Shift @ start and stop
   X <- cbind(1, 

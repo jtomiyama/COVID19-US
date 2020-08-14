@@ -12,6 +12,9 @@ make_option(c("-s", "--state"), type = "character",
 make_option(c("-m", "--template"), type = "character", 
             default = "default.template.mortality.R", help = "Analysis Template File",
             metavar="character"),
+make_option(c("-a", "--adate"), type = "character", 
+            default = "2020-06-01", help = "Analysis Date (change from unchecked spread)",
+            metavar="character"),
 make_option(c("-d", "--date"), type = "character", 
             default = "2020-03-01", help = "Intervention Date (change from unchecked spread)",
             metavar="character"),
@@ -39,6 +42,7 @@ opt = parse_args(opt_parser)
 state <- opt$state
 interventionDate <- as.Date(opt$date, format="%m/%d/%Y")
 reopenDate <- as.Date(opt$reopen, format="%m/%d/%Y")
+analysisDate <- as.Date(opt$adate)
 resultsFileName <- opt$outfile
 isdebug <- as.numeric(opt$isdebug) > 0
 cores <- as.integer(opt$cores)
@@ -72,7 +76,12 @@ if (file.exists(resultsFileName)){
     mutate(idxDate = as.numeric(date - min(date))) %>%
     mutate(deathsNonCum = c(deaths[1], diff(deaths))) %>% 
     mutate(casesNonCum = c(cases[1], diff(cases))) %>%
-    select(date, cases, deaths, idxDate, deathsNonCum, casesNonCum)
+    select(date, cases, deaths, idxDate, deathsNonCum, casesNonCum) 
+  
+  ### Differentiate between the observed data and the data for analysis
+  ### In the event analysis date is in the past
+  stateDataObserved <- stateDataFiltered
+  stateDataFiltered <- statDataFiltered %>% filter(date <= analysisDate)
   
   minIdx <- max(1, min(which(stateDataFiltered$casesNonCum > 0))-7)
   stateDataFiltered <- stateDataFiltered[minIdx:nrow(stateDataFiltered),]
@@ -112,7 +121,7 @@ if (file.exists(resultsFileName)){
                                result = R0post, 
                                sims = R0,
                                location = state)
-  save("single_state_results", "stateDataFiltered", "opt", file = resultsFileName, compress = "bzip2")
+  save("single_state_results", "stateDataObserved", "opt", file = resultsFileName, compress = "bzip2")
 } 
 
 

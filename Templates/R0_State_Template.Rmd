@@ -16,13 +16,15 @@ library(dplyr)
 library(ggplot2)
 library(kableExtra )
 library(gridExtra)
+library(ABSEIR)
 })
-resultDirectory <- "../Results/"
+resultDirectory <- "../../Results/"
 if (!dir.exists(resultDirectory)){
   stop("\nYou are running this file in the wrong directory\n")
 }
 resultDir <- setdiff(dir(resultDirectory), "Readme")
 ## Determine if we're supposed to be working in a specific folder, or grabbing the latest
+
 if (!exists("resultsDirectoryName")){
   maxidx <- which.max(as.Date(resultDir))
   rprtDate <- max(as.Date(resultDir), na.rm = TRUE)
@@ -36,14 +38,14 @@ clean_idx <- ifelse(TEMPLATE_STATE_IDX < 10,
                     paste0("0", trimws(TEMPLATE_STATE_IDX)), 
                     TEMPLATE_STATE_IDX)
 rsltFileIndicator <- grepl(clean_idx, substr(dir(resultsDirectoryName), 1, 2)) &
-                     grepl(paste0("[",TEMPLATE_INTERVENTION_TYPES,"]"),
+                     grepl(paste0("[",paste0(TEMPLATE_INTERVENTION_TYPES,collapse = ""),"]"),
                            substr(dir(resultsDirectoryName), 4, 4))
 
 if(sum(rsltFileIndicator) > 0){
   resultFiles <- paste0(resultsDirectoryName,"/", 
                         dir(resultsDirectoryName)[rsltFileIndicator])
 }else{
-  stop("\nResults files were not found\n")
+  stop("\nResults files were not found for", TEMPLATE_STATE_IDX, "\n")
 }
 
 analysisResults <- lapply(resultFiles, function(rf){
@@ -70,11 +72,7 @@ Interventions to control infectious diseases strive to drive the "reproductive n
 derived in many ways for different models, in general it captures the number of secondary infections expected per infectious individual. When 
 this number falls below 1, the spread of the disease is expected to slow and stop, while values greater than 1 indicate that the disease is likely to continue to spread exponentially until some other phenomenon interrupts transmission (additional interventions, natural behavioral changes, a lack of susceptible individuals). 
 
-The plot below provides the latest plot estimating our relationship to this threshold. Namely, it estimates the probability that the reproductive number has fallen below 1 at any point during the outbreak in Iowa, and provides a forecast 
-
-### Mortality Projections
-
-The models used here are trained on publicly available mortality data - as such, predicting mortality is one of their principal uses. In this document, we present the latest statewide projections, as well as a comparison to the official May-02 report to see how the predictions have evolved over time (where appropriate).
+The plot below provides the latest plot estimating our relationship to this threshold. Namely, it estimates the probability that the reproductive number has fallen below 1 at any point during the outbreak, and provides a forecast of the number about 1 month into the future.
 
 
 ## Methods
@@ -83,15 +81,142 @@ Typically, we do not know the functional form of how a public policy will affect
 
 Model 1 assumes an instantaneous shift in (a function of) the probability of exposure once the public policy order starts and again when it stops. Model 2 assumes a piecewise linear effect with time. Model 3 specifies a basis spline expansion over the mandate time. For states without a stay at home order, a basis spline expansion on the observed epidemic time are used. See the results section for visualizations of these effects.
 
+## Model Summary and Diagnostics {.tabset}
+
+### Model Comparisons
+
+```{r}
+intervention_types <- substr(dir(resultsDirectoryName)[rsltFileIndicator], 
+                             4, 
+                             4)
+```
+
+Intervention Types Used: `cat(intervention_types)`
+
+```{r results='asis'}
+term_eps <- NULL
+mods <- list()
+for(i in 1:length(intervention_types)){
+  term_eps <- c(term_eps, analysisResults[[i]]$single_state_results$result$modelObject$current_eps)
+  mods[[i]] <- analysisResults[[i]]$single_state_results$result$modelObject
+}
+
+### Table reads row is x times better than column
+eps_df <- data.frame(inter_type = paste0("Intervention: ",
+                                 intervention_types),
+             term_eps = term_eps)
+
+if(length(mods) > 1){
+  cat("\n\n The Bayes Factor is a measurement of how much evidence is in favor of one model over the other. In the table below, one can read the table as the model in row i has 'x' times more evidence in favor of it over the model in column j.\n")
+  bf <- compareModels(mods, 
+              n_samples = 1000, 
+              batch_size = 2000)
+  colnames(bf) <- rownames(bf) <- paste0("Intervention", intervention_types)
+  bf %>% kable(digits = 3,
+             align = c("c"), 
+             caption = "Model Bayes Factors") %>% 
+  kable_styling(bootstrap_option = c("striped", "condensed"), 
+                full_width = FALSE) 
+}
+
+cat("\n\nBelow are the terminating epsilons for each intervention model. For reference, if a model whose mortality predictions were off by a count of 5 at every time point the terminating epsilon would be:",
+    sqrt(5^2*nrow(analysisResults[[1]]$single_state_results$data))
+    )
+
+eps_df %>% kable(digits = 3,
+             align = c("l","c"), 
+             caption = "Model Epsilons", 
+             col.names = c("Intervention Type", "Terminating Epsilon")) %>% 
+  kable_styling(bootstrap_option = c("striped", "condensed"), 
+                full_width = FALSE)
+
+```
+
+
+```{r results='asis'}
+dtobj <- analysisResults[[1]]$single_state_results$data$date
+obs_I <- analysisResults[[1]]$stateDataObserved$casesNonCum %>%
+  filter(date <= max(dtobj))
+obs_R <- analysisResults[[1]]$stateDataObserved$deathsNonCum %>%
+  filter(date <= max(dtobj))
+for(i in 1:length(intervention_types)){
+  cat("### Intervention Type", intervention_types[i],"\n")
+    mod <- analysisResults[[i]]$single_state_results$result$modelObject
+    sims <- analysisResults[[i]]$single_state_results$result$simulationResults
+  cat("#### Summary of Parameters:\n")
+  print(summary(mod))
+  
+  cat("#### Posterior Predictive Distributions:\n")
+  cases <- Reduce(cbind, lapply(sims, function(x){x$I_star}))
+  
+  pq <- c(0.1, 0.25, 0.5,0.75,0.9)
+  qcases <- apply(cases, 1, quantile, probs = pq)
+  rownames(qcases) <- paste0("q", pq*100)
+  out <- cbind(data.frame(date = dtobj, obs_cases = obs_I),
+               t(as.data.frame(qcases)))
+  outFilt <- out[out$date <= maxPredDate,]
+  Iplot <- ggplot(data = outFilt, aes(x=date, y = q50)) + 
+  geom_line(color="blue") + 
+  geom_vline(xintercept = as.Date(rprtDate)) + 
+  geom_ribbon(aes(ymin = q10, ymax=q90), 
+              linetype = 2, alpha = 0.05, size = 2) +
+  geom_ribbon(aes(ymin = q25, ymax=q75), 
+              linetype = 2, alpha = 0.15, size = 2) +
+  xlab("Date") + 
+  ylab("Daily Case Count") +
+  ggtitle("Predicted Case Counts") + 
+  ggtitle("Predicted Case Counts - Current Estimates and Projections\n 50% and 80% Intervals") +  
+  geom_point(aes(x = date, y = obs_cases)) +
+  scale_colour_manual(values = c("blue", "black"),
+                       guide = guide_legend(override.aes = list(
+                         linetype = c("solid", "blank"),
+                         shape = c(NA, 16))))
+  
+  pred_deaths <- Reduce(cbind, lapply(sims, function(x){x$R_star}))
+  pq <- c(0.1, 0.25, 0.5,0.75,0.9)
+  qdeaths <- apply(pred_deaths, 1, quantile, probs = pq)
+  rownames(qdeaths) <- paste0("q", pq*100)
+  out <- cbind(data.frame(date = dtobj, obs_cases = obs_R),
+               t(as.data.frame(qdeaths)))
+  outFilt <- out[out$date <= maxPredDate,]
+  Rplot <- ggplot(data = outFilt, aes(x=date, y = q50)) + 
+  geom_line(color="blue") + 
+  geom_vline(xintercept = as.Date(rprtDate)) + 
+  geom_ribbon(aes(ymin = q10, ymax=q90), 
+              linetype = 2, alpha = 0.05, size = 2) +
+  geom_ribbon(aes(ymin = q25, ymax=q75), 
+              linetype = 2, alpha = 0.15, size = 2) +
+  xlab("Date") + 
+  ylab("Daily Death Count") +
+  ggtitle("Projected Mortality Counts") + 
+  ggtitle("Projected Mortality Counts - Current Estimates and Projections\n 50% and 80% Intervals") +  
+  geom_point(aes(x = date, y = obs_cases))
+  
+  cat("\nBelow is the predicted Deaths per day based on this model. We would expect and hope the model to perform relatively well as the models are trained using mortality data. The blue line represents the median of our predictive distribution while the points represent the observed case counts.\n")
+  
+  Rplot
+  
+  cat("\n\n")
+  cat("Below is the predicted new cases per day based on this model. We would expect the some underperformance in the model as the models are trained using mortality data. The blue line represents the median of our predictive distribution while the points represent the observed case counts.\n")
+  cat("\n\n")
+  
+  Iplot
+  
+  
+  
+}
+```
+
+
+
 # {.tabset}
 
 ## Latest Results {.tabset}
 
 These results are based on the most recently available models (generally 1-2 days out of date)
 
-### Parameter Results
 
-### Latest EA-RN information for Iowa 
+### Latest EA-RN information for `r cat(TEMPLATE_STATE_NAME)` 
 
 
 ```{r, echo=FALSE}
@@ -217,8 +342,8 @@ Incidenceframe <- Reduce("cbind", lapply(1:length(analysisResults), function(i){
   sims <- analysisResults[[i]]$single_state_results$result$simulationResults
   YOut <- Reduce("cbind", lapply(1:length(sims), function(j){
     ## I don't think I need report fraction for latent variable?
-      pi_R <- analysisResults[[i]]$single_state_results$result$params[j,]
-      pi_R <- pi_R[names(pi_R) == "report_fraction"]
+      # pi_R <- analysisResults[[i]]$single_state_results$result$params[j,]
+      # pi_R <- pi_R[names(pi_R) == "report_fraction"]
       cases <- sims[[j]]$I_star
       cases
     }))
@@ -302,8 +427,19 @@ if (rprtDate == as.Date("2020-05-02")){
   cat("<strong>Comparison omitted - report date is past June 01 and comparison is not meaningful.</strong>") 
 } else if (rprtDate <= as.Date("2020-06-01")){
   
-rwd <- paste0(resultDirectory, "2020-05-02/results/")
-resultFiles <- paste0(rwd,"/", dir(rwd)[grepl("iowa", dir(rwd))])
+rwd <- paste0(resultDirectory, "2020-05-02/")
+if(dir.exists(rwd)){
+  rsltFileIndicator <- grepl(clean_idx, substr(dir(rwd), 1, 2)) &
+                     grepl(paste0("[",
+                           paste0(TEMPLATE_INTERVENTION_TYPES, collapse = ""),
+                                  "]"),
+                           substr(dir(rwd), 4, 4))
+if(sum(rsltFileIndicator) > 0){
+  resultFiles <- paste0(rwd,"/", 
+                        dir(rwd)[rsltFileIndicator])
+}else{
+  stop("\nResults files were not found for", TEMPLATE_STATE_IDX, "\n")
+}
 analysisResults <- lapply(resultFiles, function(rf){
   e <- new.env()
   load(rf, envir = e)
@@ -351,6 +487,10 @@ p1 <- ggplot(data = outFilt, aes(x=date, y = q5)) +
 suppressWarnings({
   print(p1)
 })
+}else{
+  cat("Reference Results Doesn't Exist")
+}
+
 }
 ```
 

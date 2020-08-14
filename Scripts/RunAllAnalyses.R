@@ -11,7 +11,7 @@ argon_opts <- "-q UI,all.q"
 # Running on HPC?
 is.argon <- TRUE
 # Is this a debug run?
-isDebug <- FALSE
+isDebug <- TRUE
 # Determine the simulation grid
 # refer to Data/state_key.xlsx
  states_to_run <- c(14, 15, 16, 17, 23, 24, 
@@ -20,9 +20,9 @@ intervention_types_to_run <- c(1,2,3,4,5)
 mandate_type <- "SAHO"
 templates_to_use <- c("default.template.mortality.R")
 ## Constrain ourselves to first part of the epidemic
-analysis_date <- as.Date("2020-06-01")
-if (!dir.exists(paste0("../Results/", analysis_date))){
-  dir.create(paste0("../Results/", analysis_date))
+analysisDate <- as.Date("2020-06-01")
+if (!dir.exists(paste0("../Results/", analysisDate))){
+  dir.create(paste0("../Results/", analysisDate))
 }
 
 ## Update the datasets ##
@@ -53,7 +53,7 @@ if(nrow(interv) > 0){
   }
   
   grid$outputfile <- apply(grid, 1, function(x){
-    dir_header <- paste0("../Results/",analysis_date, "/")
+    dir_header <- paste0("../Results/",analysisDate, "/")
     
     clean_idx <- ifelse(x[["state_idx"]] < 10, 
                         paste0("0", trimws(x[["state_idx"]])), 
@@ -73,6 +73,7 @@ if(nrow(interv) > 0){
   submission_strings <- vapply(1:nrow(grid), FUN.VALUE = "string", FUN = function(i){
     args <- list(s = as.character(grid$state_idx[i]),
                  m = as.character(grid$template[i]),
+                 a = as.character(analysisDate),
                  d = as.character(grid$intervDate[i]),
                  r = as.character(grid$reopenDate[i]),
                  t = as.character(grid$intervention[i]),
@@ -108,7 +109,7 @@ if(nrow(no_interv) > 0){
   no_interv$template_short <- vapply(as.character(no_interv$template), function(x){
     substr(digest::digest(x, algo = "md5"),1,6)},"STRING")
   no_interv$outputfile <- apply(no_interv, 1, function(x){
-    dir_header <- paste0("../Results/",analysis_date, "/")
+    dir_header <- paste0("../Results/",analysisDate, "/")
     
     clean_idx <- ifelse(x[["state_idx"]] < 10, 
                         paste0("0", trimws(x[["state_idx"]])), 
@@ -129,6 +130,7 @@ if(nrow(no_interv) > 0){
   submission_strings2 <- vapply(1:nrow(no_interv), FUN.VALUE = "string", FUN = function(i){
     args <- list(s = as.character(no_interv$state_idx[i]),
                  m = as.character(no_interv$template[i]),
+                 a = as.character(analysisDate),
                  d = "2020-03-01",
                  r = "2020-05-01",
                  t = as.character(no_interv$intervention[i]),
