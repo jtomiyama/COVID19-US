@@ -41,7 +41,7 @@ data_model_1 = DataModel(stateDataFiltered$deathsNonCum,
 
 # Check for valid intervention type
 if (!intervType %in% 0:5){
-  stop("Expecting Intervention of type 0 to 5")
+  stop("Expecting Intervention of type 0 to 5. Given:", intervType)
 }
 
 if(intervType == 0){

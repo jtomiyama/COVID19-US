@@ -13,7 +13,7 @@ make_option(c("-m", "--template"), type = "character",
             default = "default.template.mortality.R", help = "Analysis Template File",
             metavar="character"),
 make_option(c("-a", "--adate"), type = "character", 
-            default = "2020-06-01", help = "Analysis Date (change from unchecked spread)",
+            default = "2020-06-01", help = "Analysis Date",
             metavar="character"),
 make_option(c("-d", "--date"), type = "character", 
             default = "2020-03-01", help = "Intervention Date (change from unchecked spread)",
@@ -42,7 +42,7 @@ opt = parse_args(opt_parser)
 state <- opt$state
 interventionDate <- as.Date(opt$date, format="%m/%d/%Y")
 reopenDate <- as.Date(opt$reopen, format="%m/%d/%Y")
-analysisDate <- as.Date(opt$adate)
+analysisDate <- as.Date(opt$adate, format = "%m/%d/%Y")
 resultsFileName <- opt$outfile
 isdebug <- as.numeric(opt$isdebug) > 0
 cores <- as.integer(opt$cores)
@@ -81,7 +81,7 @@ if (file.exists(resultsFileName)){
   ### Differentiate between the observed data and the data for analysis
   ### In the event analysis date is in the past
   stateDataObserved <- stateDataFiltered
-  stateDataFiltered <- statDataFiltered %>% filter(date <= analysisDate)
+  stateDataFiltered <- stateDataFiltered %>% filter(date <= analysisDate)
   
   minIdx <- max(1, min(which(stateDataFiltered$casesNonCum > 0))-7)
   stateDataFiltered <- stateDataFiltered[minIdx:nrow(stateDataFiltered),]
