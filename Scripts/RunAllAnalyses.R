@@ -11,11 +11,11 @@ argon_opts <- "-q UI,all.q"
 # Running on HPC?
 is.argon <- TRUE
 # Is this a debug run?
-isDebug <- TRUE
+isDebug <- FALSE
 # Determine the simulation grid
 # refer to Data/state_key.xlsx
- states_to_run <- c(14, 15, 16, 17, 23, 24, 
-                   26, 28, 35, 36, 42, 50)
+states_to_run <- c(14, 15, 16, 17, 23, 24, 
+                  26, 28, 35, 36, 42, 50)
 intervention_types_to_run <- c(1,2,3,4,5)
 mandate_type <- "SAHO"
 templates_to_use <- c("default.template.mortality.R")

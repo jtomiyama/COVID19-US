@@ -1,3 +1,4 @@
 #!/bin/bash
 module load R
-Rscript AnalyzeNYT.R -s $1 -m $2 -d $3 -r $4 -t $5 -b $6 -o $7
+source ~/.bash_profile
+Rscript AnalyzeNYT.R -s $1 -m $2 -a $3 -d $4 -r $5 -t $6 -b $7 -o $8
