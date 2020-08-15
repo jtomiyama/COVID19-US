@@ -49,7 +49,7 @@ cores <- as.integer(opt$cores)
 intervType <- as.integer(opt$type)
 
 templateFile <- paste0("../Templates/", opt$template)
-NPredDays <- 130 
+NPredDays <- 30 
 
 if(!file.exists(templateFile)){
   stop(paste0("Template doesn't exist: ", templateFile))

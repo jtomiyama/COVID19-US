@@ -45,7 +45,7 @@ apply(state_key, 1, function(x){
                                 TEMPLATE_INTERVENTION_TYPES = intervention_types)
   report_file_name <- paste0(te$TEMPLATE_STATE_IDX,"_", cln_date_run)
   
-  render(paste0("../Reports/", date_run, "/R0_State_Template.Rmd"), 
+  render(paste0("../Reports/", date_run, "/R0_State_Template_cp.Rmd"), 
          output_file = report_file_name, 
          envir = te)
 })

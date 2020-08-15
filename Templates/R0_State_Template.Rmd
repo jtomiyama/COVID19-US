@@ -38,7 +38,8 @@ clean_idx <- ifelse(TEMPLATE_STATE_IDX < 10,
                     paste0("0", trimws(TEMPLATE_STATE_IDX)), 
                     TEMPLATE_STATE_IDX)
 rsltFileIndicator <- grepl(clean_idx, substr(dir(resultsDirectoryName), 1, 2)) &
-                     grepl(paste0("[",paste0(TEMPLATE_INTERVENTION_TYPES,collapse = ""),"]"),
+                     grepl(paste0("[",paste0(
+                       TEMPLATE_INTERVENTION_TYPES,collapse = ""),"]"),
                            substr(dir(resultsDirectoryName), 4, 4))
 
 if(sum(rsltFileIndicator) > 0){
@@ -135,10 +136,10 @@ eps_df %>% kable(digits = 3,
 
 ```{r results='asis'}
 dtobj <- analysisResults[[1]]$single_state_results$data$date
-obs_I <- analysisResults[[1]]$stateDataObserved$casesNonCum %>%
+obs_data <- analysisResults[[1]]$stateDataObserved %>%
   filter(date <= max(dtobj))
-obs_R <- analysisResults[[1]]$stateDataObserved$deathsNonCum %>%
-  filter(date <= max(dtobj))
+obs_I <- obs_data$casesNonCum
+obs_R <- obs_data$deathsNonCum
 for(i in 1:length(intervention_types)){
   cat("### Intervention Type", intervention_types[i],"\n")
     mod <- analysisResults[[i]]$single_state_results$result$modelObject
