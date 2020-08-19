@@ -85,7 +85,11 @@ The plot below provides the latest plot estimating our relationship to this thre
 
 Typically, we do not know the functional form of how a public policy will affect the probability of being exposed to an infectious disease. Meaning, we do not know whether the effect is linear, quadratic, or exponential with time. To account for this functional uncertainty, we consider a set of 3 models and take a weighted average over them to conduct statistical inference. Assuming that the estimates from these models are not overtly bias, this model averaging strategy should help reduce the immense variability inherent in acute infectious disease outbreak models.
 
-Model 1 assumes an instantaneous shift in (a function of) the probability of exposure once the public policy order starts and again when it stops. Model 2 assumes a piecewise linear effect with time. Model 3 specifies a basis spline expansion over the mandate time. For states without a stay at home order, a basis spline expansion on the observed epidemic time are used. See the results section for visualizations of these effects.
+Model 1 assumes an instantaneous shift in (a function of) the probability of exposure once the public policy order starts and again when it stops. Model 2 assumes a piecewise linear effect with time. Model 3 specifies a basis spline expansion over the mandate time. For states without a stay at home order, a basis spline expansion on the observed epidemic time are used. Models 4 and 5 are based on google mobility data and are not directly linked to the stay at home order intervention dates, but one would changes in mobility in response to the stay at home orders. Model 4 is based on workplace mobility whereas model 5 is based on retail and recreation mobility. See the results section for visualizations of these model intervention effects.
+
+## Data
+
+Models are fit using the publicly available New York Times Covid-19 data. 
 
 ## Model Summary and Diagnostics {.tabset}
 
@@ -97,7 +101,7 @@ intervention_types <- substr(dir(resultsDirectoryName)[rsltFileIndicator],
                              4)
 ```
 
-Intervention Types Used: `r intervention_types`
+Intervention Model Types Used: `r intervention_types`
 
 ```{r results='asis'}
 term_eps <- NULL
@@ -139,6 +143,8 @@ eps_df %>% kable(digits = 3,
              col.names = c("Intervention Type", "Terminating Epsilon")) %>% 
   kable_styling(bootstrap_option = c("striped", "condensed"), 
                 full_width = FALSE)
+
+save(eps_df, paste0(TEMPLATE_STATE_IDX, "_model_eps.rda"))
 
 ```
 
@@ -199,15 +205,16 @@ htmlSummary <- function(x,...){
 }
 ```
 
-
-
 ```{r}
 ##### Create all necessary Plots
 IplotList <- list()
 RplotList <- list()
 
+### obs_data here should depend on whether there is data past the analysis date...
 dtobj <- analysisResults[[1]]$single_state_results$data$date
-obs_data <- analysisResults[[1]]$stateDataObserved %>%
+obs_data <- analysisResults[[1]]$single_state_results$data %>%
+  select(date) %>%
+  full_join(analysisResults[[1]]$stateDataObserved) %>%
   filter(date <= max(dtobj))
 obs_I <- obs_data$casesNonCum
 obs_R <- obs_data$deathsNonCum
@@ -222,7 +229,7 @@ for(i in 1:length(intervention_types)){
   pq <- c(0.1, 0.25, 0.5,0.75,0.9)
   qcases <- apply(cases, 1, quantile, probs = pq)
   rownames(qcases) <- paste0("q", pq*100)
-  out <- cbind(data.frame(date = dtobj, obs_cases = obs_I),
+  out <- cbind(data.frame(date = dtobj, obs_cases=obs_I),
                t(as.data.frame(qcases)))
   outFilt <- out[out$date <= maxPredDate,]
   Iplot <- ggplot(data = outFilt, aes(x=date, y = q50)) + 
@@ -271,7 +278,7 @@ for(i in 1:length(intervention_types)){
 ```{r results='asis'}
 #### Generate Markdown code
 for(i in 1:length(intervention_types)){
-  cat("### Intervention Type", intervention_types[i],"\n\n")
+  cat("### Intervention Model Type", intervention_types[i],"\n\n")
   
   cat("#### Summary of Parameters:\n\n")
   htmlSummary(summary(mods[[i]]))
@@ -293,7 +300,7 @@ for(i in 1:length(intervention_types)){
 
 ```{r echo=FALSE, messages=FALSE, warning=FALSE}
 # attach the Dependencies
-# since the do not get included with renderTags(...)$html
+# since they do not get included with renderTags(...)$html
 deps <- lapply(
   RplotList,
   function(x){
@@ -318,8 +325,6 @@ attachDependencies(
   unlist(deps,recursive=FALSE)
 )
 ```
-
-# {.tabset}
 
 ## Model-Averaged Results {.tabset}
 
@@ -353,7 +358,7 @@ out <- data.frame(date = dtobj, q1 = R0bounds[1,],
                   q75 = R0bounds[4,],
                   q9 = R0bounds[5,],
                   Observed =  analysisResults[[1]]$single_state_results$data$deaths)
-outFilt <- out[ out$date <= maxPredDate,]
+outFilt <- out[out$date <= maxPredDate,]
 p1 <- ggplot(data = outFilt, aes(x=date, y = q5)) + 
   geom_line(color="blue") + 
   geom_vline(xintercept = as.Date("2020-06-01")) + 
@@ -367,6 +372,8 @@ p1 <- ggplot(data = outFilt, aes(x=date, y = q5)) +
   geom_hline(yintercept = 1,linetype = "dashed", color = "black", size = 1)+
   theme_light()
 p1
+
+save(outFilt, file = paste0(TEMPLATE_STATE_IDX, "_R0.rda"))
 ```
 
 ### Latest Projected Mortality
@@ -402,8 +409,7 @@ out <- data.frame(date = dtobj, q1 = mortalityQuantiles[1,],
                   q75 = mortalityQuantiles[4,],
                   q9 = mortalityQuantiles[5,],
                   Observed =  analysisResults[[1]]$single_state_results$data$deaths)
-outFilt <- out[out$date >= as.Date("2020-04-01") &
-                 out$date <= maxPredDate,]
+outFilt <- out[out$date <= maxPredDate,]
 outFilt.latest <- outFilt
 p1 <- ggplot(data = outFilt, aes(x=date, y = q5)) + 
   geom_vline(xintercept = as.Date("2020-06-01")) +
@@ -440,7 +446,9 @@ out.ToPrint <- select(out.joined, date, Observed, CIprnt) %>% filter(date <= max
 colnames(out.ToPrint) <- c("Date", "Observed Mortality", "Predicted Mortality")
 kable(out.ToPrint, digits = 1,align = c("c"), caption = "Mortality: Latest") %>% 
   kable_styling(bootstrap_option = c("striped", "condensed"), 
-                full_width = FALSE) 
+                full_width = FALSE)
+
+save(outFilt, file = paste0(TEMPLATE_STATE_IDX, "_CumMort.rda"))
  
 ```
 
@@ -479,8 +487,7 @@ out <- data.frame(date = dtobj,
                   q75 = IncidenceQuantiles[4,],
                   q9 = IncidenceQuantiles[5,],
                   Observed =  analysisResults[[1]]$single_state_results$data$cases)
-outFilt <- out[out$date >= as.Date("2020-04-01") &
-                 out$date <= maxPredDate,]
+outFilt <- out[out$date <= maxPredDate,]
 outFilt.latest <- outFilt
 p1 <- ggplot(data = outFilt, aes(x=date, y = q5)) + 
   geom_vline(xintercept = as.Date("2020-06-01")) +
@@ -518,5 +525,9 @@ colnames(out.ToPrint) <- c("Date", "Observed Incidence", "Predicted Incidence")
 kable(out.ToPrint, digits = 1,align = c("c"), caption = "Incidence: Latest") %>% 
   kable_styling(bootstrap_option = c("striped", "condensed"), 
                 full_width = FALSE) 
+save(OutFilt, paste0(TEMPLATE_STATE_IDX, "_CumCases.rda"))
  
 ```
+
+
+
