@@ -64,6 +64,10 @@ analysisResults <- lapply(resultFiles, function(rf){
 ```{r,echo=FALSE, results='asis'}
 cat(paste0("<h1>Using report compiled on: ", rprtDate, "</h1>\n"))
 set.seed(as.numeric(rprtDate))
+outputPath <- paste0("../../StateOutput/", rprtDate, "/")
+if(!dir.exists(outputPath)){
+  dir.create(outputPath)
+}
 ```
 
 ## Introduction
@@ -74,12 +78,9 @@ Scientific questions of interest:
 
 ### Reproductive Numbers
 
-Interventions to control infectious diseases strive to drive the "reproductive number" below 1. While this quantity comes in many forms, and is 
-derived in many ways for different models, in general it captures the number of secondary infections expected per infectious individual. When 
-this number falls below 1, the spread of the disease is expected to slow and stop, while values greater than 1 indicate that the disease is likely to continue to spread exponentially until some other phenomenon interrupts transmission (additional interventions, natural behavioral changes, a lack of susceptible individuals). 
+Interventions to control infectious diseases strive to drive the "reproductive number" below 1. While this quantity comes in many forms, and is derived in many ways for different models, in general it captures the number of secondary infections expected per infectious individual. When this number falls below 1, the spread of the disease is expected to slow and stop, while values greater than 1 indicate that the disease is likely to continue to spread exponentially until some other phenomenon interrupts transmission (additional interventions, natural behavioral changes, a lack of susceptible individuals). 
 
 The plot below provides the latest plot estimating our relationship to this threshold. Namely, it estimates the probability that the reproductive number has fallen below 1 at any point during the outbreak, and provides a forecast of the number about 1 month into the future.
-
 
 ## Methods
 
@@ -128,6 +129,8 @@ if(length(mods) > 1){
              caption = "Model Bayes Factors") %>% 
   kable_styling(bootstrap_option = c("striped", "condensed"), 
                 full_width = FALSE) 
+}else{
+  bf <- NA
 }
 
 cat("\n\nBelow are the terminating epsilons for each intervention model. For reference, if a model whose mortality predictions were off by a count of 10 at every time point the terminating epsilon would be ~",
@@ -144,7 +147,21 @@ eps_df %>% kable(digits = 3,
   kable_styling(bootstrap_option = c("striped", "condensed"), 
                 full_width = FALSE)
 
-save(eps_df, paste0(TEMPLATE_STATE_IDX, "_model_eps.rda"))
+if(length(intervention_types) == 1 & (0 %in% intervention_types)){
+  InterventionStartDate <- analysisResults[[1]]$opt$date
+  InterventionEndDate <- analysisResults[[1]]$opt$reopen
+}else{
+  InterventionStartDate <- InterventionEndDate <- NA
+}
+
+eps_df <- eps_df %>% mutate(state_idx = TEMPLATE_STATE_IDX, 
+                            state = TEMPLATE_STATE_NAME,
+                            start_date = InterventionStartDate,
+                            end_date = InterventionEndDate)
+save(eps_df, 
+     bf,
+     file = paste0(outputPath, TEMPLATE_STATE_IDX, "_model_eps.rda")
+     )
 
 ```
 
@@ -214,7 +231,7 @@ RplotList <- list()
 dtobj <- analysisResults[[1]]$single_state_results$data$date
 obs_data <- analysisResults[[1]]$single_state_results$data %>%
   select(date) %>%
-  full_join(analysisResults[[1]]$stateDataObserved) %>%
+  left_join(analysisResults[[1]]$stateDataObserved) %>%
   filter(date <= max(dtobj))
 obs_I <- obs_data$casesNonCum
 obs_R <- obs_data$deathsNonCum
@@ -372,8 +389,8 @@ p1 <- ggplot(data = outFilt, aes(x=date, y = q5)) +
   geom_hline(yintercept = 1,linetype = "dashed", color = "black", size = 1)+
   theme_light()
 p1
-
-save(outFilt, file = paste0(TEMPLATE_STATE_IDX, "_R0.rda"))
+outFilt <- outFilt %>% mutate(state_idx = TEMPLATE_STATE_IDX, state = TEMPLATE_STATE_NAME)
+save(outFilt, file = paste0(outputPath, TEMPLATE_STATE_IDX, "_R0.rda"))
 ```
 
 ### Latest Projected Mortality
@@ -447,8 +464,8 @@ colnames(out.ToPrint) <- c("Date", "Observed Mortality", "Predicted Mortality")
 kable(out.ToPrint, digits = 1,align = c("c"), caption = "Mortality: Latest") %>% 
   kable_styling(bootstrap_option = c("striped", "condensed"), 
                 full_width = FALSE)
-
-save(outFilt, file = paste0(TEMPLATE_STATE_IDX, "_CumMort.rda"))
+outFilt <- outFilt %>% mutate(state_idx = TEMPLATE_STATE_IDX, state = TEMPLATE_STATE_NAME)
+save(outFilt, file = paste0(outputPath, TEMPLATE_STATE_IDX, "_CumMort.rda"))
  
 ```
 
@@ -459,9 +476,6 @@ save(outFilt, file = paste0(TEMPLATE_STATE_IDX, "_CumMort.rda"))
 Incidenceframe <- Reduce("cbind", lapply(1:length(analysisResults), function(i){
   sims <- analysisResults[[i]]$single_state_results$result$simulationResults
   YOut <- Reduce("cbind", lapply(1:length(sims), function(j){
-    ## I don't think I need report fraction for latent variable?
-      # pi_R <- analysisResults[[i]]$single_state_results$result$params[j,]
-      # pi_R <- pi_R[names(pi_R) == "report_fraction"]
       cases <- sims[[j]]$I_star
       cases
     }))
@@ -525,7 +539,10 @@ colnames(out.ToPrint) <- c("Date", "Observed Incidence", "Predicted Incidence")
 kable(out.ToPrint, digits = 1,align = c("c"), caption = "Incidence: Latest") %>% 
   kable_styling(bootstrap_option = c("striped", "condensed"), 
                 full_width = FALSE) 
-save(OutFilt, paste0(TEMPLATE_STATE_IDX, "_CumCases.rda"))
+outFilt <- outFilt %>% mutate(state_idx = TEMPLATE_STATE_IDX, 
+                              state = TEMPLATE_STATE_NAME)
+save(outFilt, file = paste0("../../StateOutput/",
+                            TEMPLATE_STATE_IDX, "_CumCases.rda"))
  
 ```
 

@@ -25,8 +25,8 @@ createTemplateConfigEnv <- function(...){
 date_run <- Sys.Date()
 cln_date_run <- format(Sys.Date(), "%m/%d/%Y")
 cln_date_run <- cleanDt(cln_date_run)
-states_to_run <- c(14, 15, 16, 17, 23, 24, 
-                   26, 28, 35, 36, 42, 50)
+states_to_run <- c(14, 15, 16, 17, 23, 24,
+                  26, 28, 35, 36, 42, 50)
 intervention_types <- 0:5
 state_key <- read.xlsx("../Data/state_key.xlsx") %>% 
   filter(state_idx %in% states_to_run)
