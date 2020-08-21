@@ -161,6 +161,7 @@ subplot(style(ggp1, showlegend=FALSE),
 uqStates <- unique(combEpsResults$state)
 
 for(i in 1:length(uqStates)){
+  cat('\n\n')
   cat("####", uqStates[i])
   cat("\n\n")
   
@@ -185,9 +186,9 @@ for(i in 1:length(uqStates)){
   
   cat("\n\n")
   
-  p <- combCumCasesResults %>% filter(state == uqStates[i]) %>%
+  p <- combCumCasesResults %>% 
+    filter(state == uqStates[i], date <= as.Date("2020-06-01")) %>%
     ggplot(aes(x = date, y = q5)) +
-    geom_vline(xintercept = as.Date("2020-06-01")) +
     geom_point(aes(x = date, y = Observed)) + 
     geom_line(color="blue") + 
     geom_ribbon(aes(ymin = q1, ymax=q9), 
@@ -196,18 +197,17 @@ for(i in 1:length(uqStates)){
               linetype = 2, alpha = 0.15, size = 2) + 
     ggtitle(paste0("Model fit for ", uqStates[i])) + 
     labs(x = "Date",
-         y = "Cumulative Deaths (Log Scale)")
+         y = "Cumulative Deaths")
   print(p)
   
-  p <- combCumCasesResults %>% filter(state == uqStates[i]) %>%
-    ggplot(aes(x = date, y = q5)) +
-    scale_y_continuous(trans='log10') + 
-    geom_vline(xintercept = as.Date("2020-06-01")) +
-    geom_point(aes(x = date, y = Observed)) + 
+  p <- combCumCasesResults %>% 
+    filter(state == uqStates[i], date <=as.Date("2020-06-01")) %>%
+    ggplot(aes(x = date, y = log10(q5))) +
+    geom_point(aes(x = date, y = log10(Observed))) + 
     geom_line(color="blue") + 
-    geom_ribbon(aes(ymin = q1, ymax=q9), 
+    geom_ribbon(aes(ymin = log10(q1), ymax=log10(q9)), 
               linetype = 2, alpha = 0.05, size = 2) +
-    geom_ribbon(aes(ymin = q25, ymax=q75), 
+    geom_ribbon(aes(ymin = log10(q25), ymax=log10(q75)), 
               linetype = 2, alpha = 0.15, size = 2) + 
     ggtitle(paste0("Log-Scale Model fit for ", uqStates[i])) + 
     labs(x = "Date",
