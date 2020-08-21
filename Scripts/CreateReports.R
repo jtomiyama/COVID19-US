@@ -49,3 +49,14 @@ apply(state_key, 1, function(x){
          output_file = report_file_name, 
          envir = te)
 })
+
+te2 <- createTemplateConfigEnv(TEMPLATE_STATES_IDX = state_key$state_idx)
+
+file.copy("../Templates/CombineStateReport_Template.Rmd", 
+          paste0("../Reports/", date_run, "/CombineStateReport_Template_cp.Rmd"),
+          overwrite = TRUE)
+
+render(paste0("../Reports/", date_run, "/CombineStateReport_Template_cp.Rmd"),
+       output_file = paste0("CombinedReport_", cln_date_run),
+       envir = te2)
+

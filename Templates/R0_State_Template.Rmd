@@ -64,7 +64,8 @@ analysisResults <- lapply(resultFiles, function(rf){
 ```{r,echo=FALSE, results='asis'}
 cat(paste0("<h1>Using report compiled on: ", rprtDate, "</h1>\n"))
 set.seed(as.numeric(rprtDate))
-outputPath <- paste0("../../StateOutput/", rprtDate, "/")
+# outputPath <- paste0("../../StateOutput/", rprtDate, "/")
+outputPath <- "./output/"
 if(!dir.exists(outputPath)){
   dir.create(outputPath)
 }
@@ -148,10 +149,10 @@ eps_df %>% kable(digits = 3,
                 full_width = FALSE)
 
 if(length(intervention_types) == 1 & (0 %in% intervention_types)){
+  InterventionStartDate <- InterventionEndDate <- NA
+}else{
   InterventionStartDate <- analysisResults[[1]]$opt$date
   InterventionEndDate <- analysisResults[[1]]$opt$reopen
-}else{
-  InterventionStartDate <- InterventionEndDate <- NA
 }
 
 eps_df <- eps_df %>% mutate(state_idx = TEMPLATE_STATE_IDX, 
@@ -541,8 +542,7 @@ kable(out.ToPrint, digits = 1,align = c("c"), caption = "Incidence: Latest") %>%
                 full_width = FALSE) 
 outFilt <- outFilt %>% mutate(state_idx = TEMPLATE_STATE_IDX, 
                               state = TEMPLATE_STATE_NAME)
-save(outFilt, file = paste0("../../StateOutput/",
-                            TEMPLATE_STATE_IDX, "_CumCases.rda"))
+save(outFilt, file = paste0(outputPath, TEMPLATE_STATE_IDX, "_CumCases.rda"))
  
 ```
 

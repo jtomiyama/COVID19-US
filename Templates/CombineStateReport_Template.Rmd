@@ -1,0 +1,297 @@
+---
+title: 'Combined State Results'
+author: "Grant Brown, Josh Tomiyama"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(ggplot2)
+library(plotly)
+library(openxlsx)
+library(dplyr)
+```
+
+```{r}
+outputPath <- "./output/"
+outputDir <- dir(outputPath)
+
+eps_file_idx <- grepl("_model_eps.rda",outputDir) & 
+  (substr(outputDir, 1, 2) %in% TEMPLATE_STATES_IDX)
+
+R0_idx <- grepl("_R0.rda",outputDir) & 
+  (substr(outputDir, 1, 2) %in% TEMPLATE_STATES_IDX)
+
+CumMort_idx <- grepl("_CumMort.rda",outputDir) & 
+  (substr(outputDir, 1, 2) %in% TEMPLATE_STATES_IDX)
+
+CumCases_idx <- grepl("_CumCases.rda",outputDir) & 
+  (substr(outputDir, 1, 2) %in% TEMPLATE_STATES_IDX)
+
+
+Eps_results <- lapply(paste0(outputPath, outputDir[eps_file_idx]), function(rf){
+  e <- new.env()
+  load(rf, envir = e)
+  e
+})
+
+names(Eps_results) <- sapply(Eps_results, function(x){unique(x$eps_df$state)})
+
+
+R0_results <- lapply(paste0(outputPath, outputDir[R0_idx]), function(rf){
+  e <- new.env()
+  load(rf, envir = e)
+  e
+})
+
+CumMort_results <- lapply(paste0(outputPath, outputDir[CumMort_idx]), function(rf){
+  e <- new.env()
+  load(rf, envir = e)
+  e
+})
+
+CumCases_results <- lapply(paste0(outputPath, outputDir[CumCases_idx]), function(rf){
+  e <- new.env()
+  load(rf, envir = e)
+  e
+})
+```
+
+```{r results='hide', message=FALSE, warning = FALSE}
+### Create Resulting Data Frames
+combEpsResults <- Reduce(rbind, lapply(Eps_results, function(x){x$eps_df}))
+combBfResults <- Reduce(rbind, lapply(Eps_results, function(x){if(is.na(x$bf[1])){NULL}else{x$bf}}))
+combR0Results <- Reduce(rbind, lapply(R0_results, function(x){x$outFilt}))
+combCumMortResults <- Reduce(rbind, lapply(CumMort_results, function(x){x$outFilt}))
+combCumCasesResults <- Reduce(rbind, lapply(CumCases_results, function(x){x$outFilt}))
+
+censusData <- read.xlsx("../../Data/nst-est2019-01.xlsx")
+censusData$State <- gsub(".", "", censusData$State, fixed = TRUE)
+censusData <- censusData %>% select(State, "2019")
+colnames(censusData)[which(colnames(censusData) == "2019")] <- "Pop"
+
+combCumCasesResults <- combCumCasesResults %>% 
+  inner_join(censusData, by=c("state"="State")) %>%
+  mutate(q5_prop = q5/Pop, obs_prop = Observed/Pop)
+
+combCumMortResults <- combCumMortResults %>% 
+  inner_join(censusData, by=c("state"="State")) %>%
+  mutate(q5_prop = q5/Pop, obs_prop = Observed/Pop)
+
+combEpsResults$hadSAHO <- ifelse(is.na(combEpsResults$start_date), 0, 1)
+
+combCumMortResults <- combEpsResults %>% select(state, hadSAHO) %>% right_join(combCumMortResults)
+combCumCasesResults <- combEpsResults %>% select(state, hadSAHO) %>% right_join(combCumCasesResults)
+combR0Results <- combEpsResults %>% select(state, hadSAHO) %>% right_join(combR0Results)
+
+```
+
+
+## Model/Data Summary
+
+```{r}
+
+combEpsResults %>% select(state, start_date, end_date) %>% distinct() %>%
+  kable(col.names = c("State", "SAHO Start", "SAHO end"), 
+        caption = "Stay At Home Order Dates") %>%
+  kable_styling(bootstrap_option = c("striped", "condensed"), full_width = FALSE)
+
+```
+
+```{r}
+p1 <- ggplot(data = combCumMortResults, 
+            mapping = aes(x = date, y = Observed, col = state)) +
+      geom_line(size = 1, linetype = -combCumMortResults$hadSAHO + 2) +
+      geom_vline(xintercept = as.numeric(as.Date("2020/06/01")),
+                 linetype = "dashed") + 
+      labs(title = "Observed Cumulative Mortality by State",
+            x = "Date",
+            y = "Number of Deaths") +
+      theme(legend.title = element_blank())
+
+p2 <- ggplot(data = combCumMortResults, mapping = aes(x = date, y = obs_prop, col = state)) +
+      geom_line(size = 1, linetype = -combCumMortResults$hadSAHO + 2) +
+      geom_vline(xintercept = as.numeric(as.Date("2020/06/01")),
+                 linetype = "dashed") + 
+      labs(title = "Observed Cumulative Mortality as Percentage of State Population",
+            x = "Date",
+            y = "Percent of Population") +
+      theme(legend.title = element_blank())
+
+ggp1 <- ggplotly(p1)
+ggp2 <- ggplotly(p2)
+
+subplot(style(ggp1, showlegend=FALSE),
+        ggp2, 
+        nrows = 2, shareX = TRUE, titleY = TRUE)
+```
+
+```{r}
+p1 <- ggplot(data = combCumCasesResults, mapping = aes(x = date, y = Observed, col = state)) +
+      geom_line(size = 1, linetype = -combCumCasesResults$hadSAHO + 2) +
+      geom_vline(xintercept = as.numeric(as.Date("2020/06/01")),
+                 linetype = "dashed") + 
+      labs(title = "Observed Cumulative Cases by State",
+            x = "Date",
+            y = "Number of Cases") +
+      theme(legend.title = element_blank())
+p2 <- ggplot(data = combCumCasesResults, mapping = aes(x = date, y = obs_prop, col = state)) +
+      geom_line(size = 1, linetype = -combCumCasesResults$hadSAHO + 2) +
+      geom_vline(xintercept = as.numeric(as.Date("2020/06/01")),
+                 linetype = "dashed") + 
+      labs(title = "Observed Cumulative Cases as Percentage of State Population",
+            x = "Date",
+            y = "Percent of Population") +
+      theme(legend.title = element_blank())
+
+ggp1 <- ggplotly(p1)
+ggp2 <- ggplotly(p2)
+
+subplot(style(ggp1, showlegend=FALSE),
+        ggp2, 
+        nrows = 2, shareX = TRUE, titleY = TRUE)
+
+```
+
+### Individual Model State Summaries{.tabset}
+
+#### Hide
+
+```{r results='asis', warning=FALSE}
+uqStates <- unique(combEpsResults$state)
+
+for(i in 1:length(uqStates)){
+  cat("####", uqStates[i])
+  cat("\n\n")
+  
+  combEpsResults %>%
+    filter(state == uqStates[i]) %>%
+    select(inter_type, term_eps) %>%
+    kable(digits = 3, caption = "Model Epsilons") %>%
+    kable_styling(bootstrap_option = c("striped", "condensed"), 
+                  full_width = FALSE) %>%
+    print()
+  cat("\n\n")
+  
+  
+  if(!is.null(nrow(Eps_results[[uqStates[i]]]$bf))){
+    Eps_results[[uqStates[i]]]$bf %>%
+    kable(digits = 3,
+             align = c("c"), 
+             caption = "Model Bayes Factors") %>% 
+    kable_styling(bootstrap_option = c("striped", "condensed"), 
+                full_width = FALSE) %>% print()  
+  }
+  
+  cat("\n\n")
+  
+  p <- combCumCasesResults %>% filter(state == uqStates[i]) %>%
+    ggplot(aes(x = date, y = q5)) +
+    geom_vline(xintercept = as.Date("2020-06-01")) +
+    geom_point(aes(x = date, y = Observed)) + 
+    geom_line(color="blue") + 
+    geom_ribbon(aes(ymin = q1, ymax=q9), 
+              linetype = 2, alpha = 0.05, size = 2) +
+    geom_ribbon(aes(ymin = q25, ymax=q75), 
+              linetype = 2, alpha = 0.15, size = 2) + 
+    ggtitle(paste0("Model fit for ", uqStates[i])) + 
+    labs(x = "Date",
+         y = "Cumulative Deaths (Log Scale)")
+  print(p)
+  
+  p <- combCumCasesResults %>% filter(state == uqStates[i]) %>%
+    ggplot(aes(x = date, y = q5)) +
+    scale_y_continuous(trans='log10') + 
+    geom_vline(xintercept = as.Date("2020-06-01")) +
+    geom_point(aes(x = date, y = Observed)) + 
+    geom_line(color="blue") + 
+    geom_ribbon(aes(ymin = q1, ymax=q9), 
+              linetype = 2, alpha = 0.05, size = 2) +
+    geom_ribbon(aes(ymin = q25, ymax=q75), 
+              linetype = 2, alpha = 0.15, size = 2) + 
+    ggtitle(paste0("Log-Scale Model fit for ", uqStates[i])) + 
+    labs(x = "Date",
+         y = "Cumulative Deaths (Log Scale)")
+  print(p)
+  cat("\n\n")
+  
+}
+```
+
+
+# Model Fit Results
+
+## R0 Results
+
+```{r}
+p <- ggplot(data = combR0Results, mapping = aes(x = date, y = q5, col = state)) +
+      geom_line(size = 1, linetype = -combR0Results$hadSAHO + 2) +
+      geom_hline(yintercept = 1) +
+      geom_vline(xintercept = as.numeric(as.Date("2020/06/01")),
+                 linetype = "dashed") + 
+      labs(title = "Empirical R0 by State",
+            x = "Date",
+            y = "Expected Number of \nSecondary Infections") +
+      theme(legend.title = element_blank())
+ggplotly(p)
+```
+
+## Cumulative Mortality Results
+
+```{r}
+p1 <- ggplot(data = combCumMortResults, mapping = aes(x = date, y = q5, col = state)) +
+      geom_line(size = 1, linetype = -combCumMortResults$hadSAHO + 2) +
+      geom_vline(xintercept = as.numeric(as.Date("2020/06/01")),
+                 linetype = "dashed") + 
+      labs(title = "Predicted Cumulative Mortality",
+            x = "Date",
+            y = "Number of Deaths") +
+      theme(legend.title = element_blank())
+
+p2 <- ggplot(data = combCumMortResults, mapping = aes(x = date, y = q5_prop, col = state)) +
+      geom_line(size = 1, linetype = -combCumMortResults$hadSAHO + 2) +
+      geom_vline(xintercept = as.numeric(as.Date("2020/06/01")),
+                 linetype = "dashed") + 
+      labs(title = "Predicted Cumulative Mortality as Percentage of State Population",
+            x = "Date",
+            y = "Percentage of Deaths") +
+      theme(legend.title = element_blank())
+
+ggp1 <- ggplotly(p1)
+ggp2 <- ggplotly(p2)
+
+subplot(style(ggp1, showlegend=FALSE),
+        ggp2, 
+        nrows = 2, shareX = TRUE, titleY = TRUE)
+```
+
+
+## Cumulative Incidence Results
+
+```{r}
+p1 <- ggplot(data = combCumCasesResults, mapping = aes(x = date, y = q5, col = state)) +
+      geom_line(size = 1, linetype = -combCumCasesResults$hadSAHO + 2) +
+      geom_vline(xintercept = as.numeric(as.Date("2020/06/01")),
+                 linetype = "dashed") + 
+      labs(title = "Predicted Cumulative Cases by State",
+            x = "Date",
+            y = "Number of Cases") +
+      theme(legend.title = element_blank())
+
+p2 <- ggplot(data = combCumCasesResults, mapping = aes(x = date, y = q5_prop, col = state)) +
+      geom_line(size = 1, linetype = -combCumCasesResults$hadSAHO + 2) +
+      geom_vline(xintercept = as.numeric(as.Date("2020/06/01")),
+                 linetype = "dashed") + 
+      labs(title = "Predicted Cumulative Cases as Percentage of State Population",
+            x = "Date",
+            y = "Percent of Population") +
+      theme(legend.title = element_blank())
+
+ggp1 <- ggplotly(p1)
+ggp2 <- ggplotly(p2)
+
+subplot(style(ggp1, showlegend=FALSE),
+        ggp2, 
+        nrows = 2, shareX = TRUE, titleY = TRUE)
+```
+
