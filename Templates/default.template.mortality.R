@@ -208,8 +208,8 @@ if (isdebug){
                                       algorithm="Beaumont2009",
                                       list(init_batch_size = 2500000,
                                            batch_size = 100000,
-                                           epochs = 2,
-                                           max_batches = 2,
+                                           epochs = 10,
+                                           max_batches = 100,
                                            shrinkage = 0.85,
                                            keep_compartments =TRUE
                                       ))
