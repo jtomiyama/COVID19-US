@@ -21,8 +21,9 @@ mandate_type <- "SAHO"
 templates_to_use <- c("default.template.mortality.R")
 ## Constrain ourselves to first part of the epidemic
 analysisDate <- as.Date("2020-6-1")
-if (!dir.exists(paste0("../Results/", analysisDate))){
-  dir.create(paste0("../Results/", analysisDate))
+runDate <- Sys.Date()
+if (!dir.exists(paste0("../Results/", runDate))){
+  dir.create(paste0("../Results/", runDate))
 }
 
 ## Update the datasets ##
@@ -53,7 +54,7 @@ if(nrow(interv) > 0){
   }
   
   grid$outputfile <- apply(grid, 1, function(x){
-    dir_header <- paste0("../Results/",analysisDate, "/")
+    dir_header <- paste0("../Results/",runDate, "/")
     
     clean_idx <- ifelse(x[["state_idx"]] < 10, 
                         paste0("0", trimws(x[["state_idx"]])), 
