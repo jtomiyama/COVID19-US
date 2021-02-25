@@ -101,7 +101,7 @@ if (file.exists(resultsFileName)){
   
   
   source(templateFile)
-  cat("\n\n FITTING MODEL INTERVENTION TYPE:",intervType, "STATE:", state )
+  cat("\n\n FITTING MODEL INTERVENTION TYPE:",intervType, "STATE:", state "\n\n")
   result <- SpatialSEIRModel(data_model_1,
                             exposure_model,
                             reinfection_model,
@@ -127,7 +127,8 @@ if (file.exists(resultsFileName)){
        "opt", 
        file = resultsFileName, 
        compress = "bzip2")
-  cat("\n\nMODEL RUN SUCCESSFULLY\N\N")
+  cat("\n\nMODEL RUN SUCCESSFUL INTERVENTION TYPE:",intervType, 
+      "STATE:", state, "\n\n")
 } 
 
 
