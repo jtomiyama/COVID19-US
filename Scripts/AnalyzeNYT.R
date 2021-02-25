@@ -101,7 +101,7 @@ if (file.exists(resultsFileName)){
   
   
   source(templateFile)
-  cat("\n\n FITTING MODEL INTERVENTION TYPE:",intervType, "STATE:", state "\n\n")
+  cat("\n\n FITTING MODEL INTERVENTION TYPE:",intervType, "STATE:", state, "\n\n")
   result <- SpatialSEIRModel(data_model_1,
                             exposure_model,
                             reinfection_model,
