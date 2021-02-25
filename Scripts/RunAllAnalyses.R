@@ -7,7 +7,7 @@ library(openxlsx)
 
 ## Declare simulation type and scope ##
 # Declare argon opts
-argon_opts <- "-q UI,all.q"
+argon_opts <- "-q UI,all.q -M jtomiyama@uiowa.edu -m e"
 # Running on HPC?
 is.argon <- TRUE
 # Is this a debug run?
